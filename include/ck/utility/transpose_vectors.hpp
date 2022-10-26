@@ -93,6 +93,88 @@ __device__ void transpose_int8_4x4(const int8x4_t& x0,
                                    int8x4_t& y2,
                                    int8x4_t& y3)
 {
+
+#if 1
+    static constexpr auto I0 = Number<0>{};
+    static constexpr auto I1 = Number<1>{};
+    static constexpr auto I2 = Number<2>{};
+    static constexpr auto I3 = Number<3>{};
+
+    const vector_type<int8_t, 4> vx0{x0}, vx1{x1}, vx2{x2}, vx3{x3};
+    vector_type<int8_t, 4> vy0, vy1, vy2, vy3, t0, t1;
+    //int8x4_t t0, t1;
+
+
+    asm volatile("s_barrier");
+    asm volatile("s_barrier");
+   
+    // t0 = perm(x1,x0,0x05010400)
+
+    t0.template AsType<int8_t>()(I0) = vx0.template AsType<int8_t>()[I0];
+    t0.template AsType<int8_t>()(I1) = vx1.template AsType<int8_t>()[I0];
+    t0.template AsType<int8_t>()(I2) = vx0.template AsType<int8_t>()[I1];
+    t0.template AsType<int8_t>()(I3) = vx1.template AsType<int8_t>()[I1];
+
+    // t1 = perm(x3,x2,0x05010400)
+
+    t1.template AsType<int8_t>()(I0) = vx2.template AsType<int8_t>()[I0];
+    t1.template AsType<int8_t>()(I1) = vx3.template AsType<int8_t>()[I0];
+    t1.template AsType<int8_t>()(I2) = vx2.template AsType<int8_t>()[I1];
+    t1.template AsType<int8_t>()(I3) = vx3.template AsType<int8_t>()[I1];
+
+    // vy0 = perm(t1,t0,0x05040100)
+
+    vy0.template AsType<int8_t>()(I0) = t0.template AsType<int8_t>()[I0];
+    vy0.template AsType<int8_t>()(I1) = t0.template AsType<int8_t>()[I1];
+    vy0.template AsType<int8_t>()(I2) = t1.template AsType<int8_t>()[I0];
+    vy0.template AsType<int8_t>()(I3) = t1.template AsType<int8_t>()[I1];    
+
+    // vy1 = perm(t1,t0,0x07060302)
+
+    vy1.template AsType<int8_t>()(I0) = t0.template AsType<int8_t>()[I2];
+    vy1.template AsType<int8_t>()(I1) = t0.template AsType<int8_t>()[I3];
+    vy1.template AsType<int8_t>()(I2) = t1.template AsType<int8_t>()[I2];
+    vy1.template AsType<int8_t>()(I3) = t1.template AsType<int8_t>()[I3];    
+
+    // t0 = perm(x1,x0,0x07030602)
+
+    t0.template AsType<int8_t>()(I0) = vx0.template AsType<int8_t>()[I2];
+    t0.template AsType<int8_t>()(I1) = vx1.template AsType<int8_t>()[I2];
+    t0.template AsType<int8_t>()(I2) = vx0.template AsType<int8_t>()[I3];
+    t0.template AsType<int8_t>()(I3) = vx1.template AsType<int8_t>()[I3];
+
+    // t1 = perm(x3,x2,0x07030602)
+    
+    t1.template AsType<int8_t>()(I0) = vx2.template AsType<int8_t>()[I2];
+    t1.template AsType<int8_t>()(I1) = vx3.template AsType<int8_t>()[I2];
+    t1.template AsType<int8_t>()(I2) = vx2.template AsType<int8_t>()[I3];
+    t1.template AsType<int8_t>()(I3) = vx3.template AsType<int8_t>()[I3]; 
+
+    // vy2 = perm(t1,t0,0x05040100)
+
+    vy2.template AsType<int8_t>()(I0) = t0.template AsType<int8_t>()[I0];
+    vy2.template AsType<int8_t>()(I1) = t0.template AsType<int8_t>()[I1];
+    vy2.template AsType<int8_t>()(I2) = t1.template AsType<int8_t>()[I0];
+    vy2.template AsType<int8_t>()(I3) = t1.template AsType<int8_t>()[I1];    
+
+    // vy3 = perm(t1,t0,0x07060302)
+
+    vy3.template AsType<int8_t>()(I0) = t0.template AsType<int8_t>()[I2];
+    vy3.template AsType<int8_t>()(I1) = t0.template AsType<int8_t>()[I3];
+    vy3.template AsType<int8_t>()(I2) = t1.template AsType<int8_t>()[I2];
+    vy3.template AsType<int8_t>()(I3) = t1.template AsType<int8_t>()[I3];  
+
+    asm volatile("s_barrier");
+    asm volatile("s_barrier");
+
+    y0 = vy0.template AsType<int8x4_t>()[I0];
+    y1 = vy1.template AsType<int8x4_t>()[I0];
+    y2 = vy2.template AsType<int8x4_t>()[I0];
+    y3 = vy3.template AsType<int8x4_t>()[I0];
+
+#endif
+
+#if 0
     int32_t t0, t1;
     int32_t z0, z1, z2, z3;
     constexpr int32_t m0 = 0x05010400;
@@ -117,6 +199,7 @@ __device__ void transpose_int8_4x4(const int8x4_t& x0,
     y1 = bit_cast<int8x4_t>(z1);
     y2 = bit_cast<int8x4_t>(z2);
     y3 = bit_cast<int8x4_t>(z3);
+#endif
 }
 
 template <index_t NX, index_t NY>
